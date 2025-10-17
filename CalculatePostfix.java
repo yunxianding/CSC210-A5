@@ -2,7 +2,7 @@
  * This class calculates the solution to a postfix solution
  * 
  * @arthur Yunxian Ding
- * @version 10/16/2025
+ * @version 10/17/2025
  */
 public class CalculatePostfix {
 
@@ -110,7 +110,7 @@ public class CalculatePostfix {
         } else {
             Queue<Object> tokens = Tokenizer.readTokens(args[0]);
             Double result = postfixToResult(tokens);
-            System.out.println(result);
+            System.out.println("Answer: " + result);
         }
     }
 }

@@ -2,7 +2,7 @@
  * This class converts infix expressions to postfix and calculates the result
  * 
  * @author Yunxian Ding
- * @version 10/16/2025
+ * @version 10/17/2025
  */
 public class CalculateInfix {
     
@@ -16,9 +16,11 @@ public class CalculateInfix {
     private static int precedence(char op) {
         switch (op) {
             case '+':
+                return 1;
             case '-':
                 return 1;
             case '*':
+                return 2;
             case '/':
                 return 2;
             case '^':
@@ -29,70 +31,67 @@ public class CalculateInfix {
     }
     
     /**
-     * Returns true if operator is right-associative
-     * 
-     * @param op the operator character
-     * @return true if right-associative, false if left-associative
-     */
-    private static boolean isRightAssociative(char op) {
-        return op == '^';
-    }
-    
-    /**
-     * Converts infix expression to postfix and calculates the result
+     * This method converts infix expression to postfix and calculates the result
      * Uses the Shunting Yard algorithm
      * 
-     * @param tokens queue of tokens in infix notation
+     * @param tokens queue of tokens
      * @return the calculated result
-     * @throws IllegalArgumentException for malformed expressions
+     * @throws IllegalArgumentException for special cases
      */
     public static Double infixToPostfix(Queue<Object> tokens) {
+
+        // If tokens queue is null, throw exception
         if (tokens == null) {
             throw new IllegalArgumentException("The tokens queue is null.");
         }
         
-        Queue<Object> outputQueue = new Queue<>();
-        Stack<Character> operatorStack = new Stack<>();
+        Queue<Object> queue = new Queue<>();
+        Stack<Character> stack = new Stack<>();
         
         // Process each token using Shunting Yard algorithm
         while (!tokens.isEmpty()) {
             Object token = tokens.remove();
             
-            // If token is a number, add it directly to output queue
+            // If token is a number, add it to the output queue
             if (token instanceof Double) {
-                outputQueue.add(token);
+                queue.add(token);
             }
+
             // If token is a character, it could be an operator or parenthesis
             else if (token instanceof Character) {
                 char c = (Character) token;
                 
-                // If it's a left parenthesis, push onto stack
+                // If it's a left parenthesis, push it onto the stack
                 if (c == '(') {
-                    operatorStack.push(c);
+                    stack.push(c);
                 }
+
                 // If it's a right parenthesis
                 else if (c == ')') {
                     // Pop operators until we find the matching left parenthesis
                     boolean foundLeftParen = false;
-                    while (!operatorStack.isEmpty()) {
-                        char top = operatorStack.pop();
+                    while (!stack.isEmpty()) {
+                        char top = stack.pop();
+                        // If we found the left parentheis, pop it from the stack and break while loop
                         if (top == '(') {
                             foundLeftParen = true;
                             break;
                         }
-                        outputQueue.add(top);
+                        // Add other operators onto the queue
+                        queue.add(top);
                     }
-                    // If we didn't find a left parenthesis, the expression is malformed
+                    // If we didn't find a left parenthesis, throw exception
                     if (!foundLeftParen) {
-                        throw new IllegalArgumentException("Mismatched parentheses: missing left parenthesis.");
+                        throw new IllegalArgumentException("There is no left parenthesis in the stack.");
                     }
                 }
+
                 // If it's an operator
                 else if (c == '+' || c == '-' || c == '*' || c == '/' || c == '^') {
-                    // Pop operators from stack to output queue while they have higher or equal precedence
+                    // Pop operators from stack to output queue while they have great or equal precedence
                     // For right-associative operators (^), only pop if strictly higher precedence
-                    while (!operatorStack.isEmpty()) {
-                        char stackOp = operatorStack.peek();
+                    while (!stack.isEmpty()) {
+                        char stackOp = stack.peek();
                         
                         // Don't pop left parenthesis
                         if (stackOp == '(') {
@@ -103,43 +102,54 @@ public class CalculateInfix {
                         int stackPrec = precedence(stackOp);
                         int tokenPrec = precedence(c);
                         
-                        // For left-associative: pop if stack precedence >= token precedence
-                        // For right-associative: pop if stack precedence > token precedence
                         boolean shouldPop;
-                        if (isRightAssociative(c)) {
+                        // For right-associative ^ : pop if stack precedence > token precedence
+                        if (tokenPrec == 3) {
                             shouldPop = stackPrec > tokenPrec;
-                        } else {
+                        } 
+                        // For left-associative + - * / : pop if stack precedence >= token precedence
+                        else {
                             shouldPop = stackPrec >= tokenPrec;
                         }
                         
+                        // If shouldPop, pop the stack operator off the stack and add it to the output queue
                         if (shouldPop) {
-                            outputQueue.add(operatorStack.pop());
+                            queue.add(stack.pop());
                         } else {
                             break;
                         }
                     }
-                    // Push the current operator onto the stack
-                    operatorStack.push(c);
-                } else {
+
+                    // When no more high-predence stack operators remain, push the current operator onto the stack
+                    stack.push(c);
+                } 
+                
+                // If the token is not a valid character, throw exception
+                else {
                     throw new IllegalArgumentException("Invalid character: " + c);
                 }
-            } else {
+            } 
+            
+            // If the token is neither a number or an operator, throw exception
+            else {
                 throw new IllegalArgumentException("Token is neither a number nor a character.");
             }
         }
         
-        // Pop any remaining operators from stack to output queue
-        while (!operatorStack.isEmpty()) {
-            char top = operatorStack.pop();
-            // If we find a parenthesis, the expression is malformed
+        // When there are no more tokens to read
+        // While there are stilll tokens in the stack
+        while (!stack.isEmpty()) {
+            char top = stack.pop();
+            // If we find a parenthesis, then there are mismatched parentheses, throw exception
             if (top == '(' || top == ')') {
                 throw new IllegalArgumentException("Mismatched parentheses.");
             }
-            outputQueue.add(top);
+            // If it's an operator, pop it onto the output queue
+            queue.add(top);
         }
         
-        // Now use the postfix calculator to compute the result
-        return CalculatePostfix.postfixToResult(outputQueue);
+        // Use the postfix calculator to compute the result
+        return CalculatePostfix.postfixToResult(queue);
     }
     
     /**
@@ -153,7 +163,7 @@ public class CalculateInfix {
         } else {
             Queue<Object> tokens = Tokenizer.readTokens(args[0]);
             Double result = infixToPostfix(tokens);
-            System.out.println(result);
+            System.out.println("Answer: " + result);
         }
     }
 }
